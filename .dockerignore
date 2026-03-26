@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+
+# Dependency directories
+node_modules
+vendor
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Tests & dev tools
+tests
+.phpunit.result.cache
+phpunit.xml
+
+# Docker compose files (not needed in build context)
+docker-compose*.yml
+
+# OS & editor
+.DS_Store
+.idea
+.vscode
+*.swp
+
+# Build artifacts
+public/hot
+public/storage
+storage/logs/*.log
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*

@@ -1,0 +1,92 @@
+services:
+
+  # ─── Laravel (PHP-FPM + scheduler) ──────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: crm_app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+    volumes:
+      # Source code (hot-reload in local dev)
+      - .:/var/www/html
+      # Persist logs outside the container
+      - app_storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - crm
+
+  # ─── Nginx ───────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: crm_nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - app_storage:/var/www/html/storage:ro
+    depends_on:
+      - app
+    networks:
+      - crm
+
+  # ─── MySQL 8 ─────────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.2
+    container_name: crm_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE:      ${DB_DATABASE:-crm}
+      MYSQL_USER:          ${DB_USERNAME:-crm}
+      MYSQL_PASSWORD:      ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+    ports:
+      - "${DB_EXTERNAL_PORT:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - crm
+
+  # ─── Redis (cache + queues) ───────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: crm_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - crm
+
+# ─── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  db_data:
+  redis_data:
+  app_storage:
+
+# ─── Networks ──────────────────────────────────────────────────────────────────
+networks:
+  crm:
+    driver: bridge
