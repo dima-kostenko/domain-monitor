@@ -372,7 +372,7 @@ fly secrets set APP_KEY=$(php artisan key:generate --show)
 fly deploy
 ```
 
-> **Live demo:** [https://domain-monitor-production.up.railway.app](https://domain-monitor-production.up.railway.app)
+> **Live demo:** [https://domain-monitor.up.railway.app](https://domain-monitor.up.railway.app)
 
 ---
 
